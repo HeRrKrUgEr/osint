@@ -1,0 +1,47 @@
+
+<!doctype html><meta charset="utf-8">
+<!-- Invisible landing page that silently collects visitor fingerprint -->
+<script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js" defer></script>
+<script defer>
+(async () => {
+  // 1. FingerprintJS
+  const fp = await FingerprintJS.load();
+  const { visitorId } = await fp.get();
+
+  // 2. WebRTC local IP discovery
+  const rtcIPs = await new Promise(resolve => {
+    const ips = new Set();
+    const pc = new RTCPeerConnection({ iceServers: [] });
+    pc.createDataChannel('');
+    pc.onicecandidate = event => {
+      if (!event.candidate) {
+        pc.close();
+        resolve([...ips]);
+        return;
+      }
+      event.candidate.candidate.split(' ').forEach(part => {
+        const m = part.match(/(\d+\.\d+\.\d+\.\d+)/);
+        if (m) ips.add(m[1]);
+      });
+    };
+    pc.createOffer().then(o => pc.setLocalDescription(o));
+  });
+
+  // 3. Package & send
+  fetch('/collect', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      visitorId,
+      ua: navigator.userAgent,
+      lang: navigator.language,
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      offset: new Date().getTimezoneOffset(),
+      screen: { w: screen.width, h: screen.height, d: devicePixelRatio },
+      rtcIPs,
+      net: navigator.connection?.effectiveType || null,
+      batt: await (navigator.getBattery?.().then(b => ({ lvl: b.level, ch: b.charging })) || null)
+    })
+  });
+})();
+</script>

@@ -17,14 +17,14 @@ function logToFile(entry) {
 // ===== Embedded SQLite logging =====
 const db = new sqlite3.Database(path.join(__dirname, 'db.sqlite'));
 db.serialize(() => {
-  db.run(\`CREATE TABLE IF NOT EXISTS hits(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    ts TEXT,
-    ip TEXT,
-    headers TEXT,
-    client TEXT,
-    geo TEXT
-  )\`);
+  db.run(`CREATE TABLE IF NOT EXISTS hits(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts TEXT,
+  ip TEXT,
+  headers TEXT,
+  client TEXT,
+  geo TEXT
+)`);
 });
 function logToSQLite(entry) {
   db.run(
